@@ -24,6 +24,7 @@ A Go CLI tool to upscale images in CBZ (comic/manga archive) files using waifu2x
 Examples:
 - Default: ./comic-upscaler --input manga.cbz (outputs manga_upscaled.cbz)
 - Custom: ./comic-upscaler --input manga.cbz --output high-res.cbz --scale 3 --noise 1
+- Multi-GPU with auto-threads: ./comic-upscaler --input manga.cbz --gpu-id auto (adjusts threads automatically)
 - Multi-GPU auto: ./comic-upscaler --input manga.cbz --gpu-id auto --threads 2:4:4 (outputs manga_upscaled.cbz using all detected GPUs).
 
 ## Flags
@@ -33,7 +34,7 @@ Examples:
 - --scale: Upscale factor (int >0, default 2).
 - --noise: Noise reduction level (int >=0, default 2).
 - --gpu-id: GPU device(s) to use (-1 for CPU, 0 for first GPU, comma-separated like 0,1 for multi-GPU; default "auto" - detects NVIDIA GPUs via nvidia-smi).
-- --threads: Thread counts for load:proc:save (e.g., "1:2:2"; default "1:2:2").
+- --threads: Thread counts for load:proc:save (e.g., "1:2:2"; default "1:2:2" - auto-adjusted for multi-GPU, e.g., "1:2,2:2" for 2 GPUs when using --gpu-id auto or multi).
 
 ## Notes
 
@@ -41,6 +42,7 @@ Examples:
 - Temp files auto-cleaned.
 - Vulkan enabled for GPU if available.
 - GPU auto-detection requires nvidia-smi (part of NVIDIA drivers); falls back to single GPU if unavailable, CPU if none. For AMD/Intel GPUs, set --gpu-id manually (tool uses Vulkan, supports multiple backends via waifu2x).
+- For multi-GPU, default threads are auto-adjusted to match GPU count (e.g., proc/save parts per GPU); custom --threads overrides this.
 - License: MIT (or add basic MIT license text if desired).
 
 ## Development
