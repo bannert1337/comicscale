@@ -28,6 +28,16 @@ func main() {
 
 	flag.Parse()
 
+	// Validate scale and noise parameters
+	if scale <= 0 {
+		fmt.Println("Scale must be >0")
+		os.Exit(1)
+	}
+	if noise < 0 {
+		fmt.Println("Noise must be >=0")
+		os.Exit(1)
+	}
+
 	// Defer cleanup of temp directory
 	var extractDir string
 	defer func() {
@@ -110,6 +120,20 @@ func main() {
 	// Print extraction summary
 	fmt.Printf("Extracted %d images to temp directory: %s\n", len(imageFiles), tempDir)
 
+	// Check if any images were found
+	if len(imageFiles) == 0 {
+		fmt.Println("No image files found in CBZ")
+		os.Exit(1)
+	}
+
+	// Check if waifu2x binary exists
+	_, err = exec.LookPath("waifu2x-ncnn-vulkan")
+	if err != nil {
+		fmt.Printf("waifu2x-ncnn-vulkan not found in PATH: %v\n", err)
+		fmt.Println("Install from https://github.com/nihui/waifu2x-ncnn-vulkan")
+		os.Exit(1)
+	}
+
 	// Create upscaled directory
 	upscaleDir := filepath.Join(tempDir, "upscaled")
 	if err := os.Mkdir(upscaleDir, 0755); err != nil {
@@ -126,6 +150,12 @@ func main() {
 			fmt.Printf("Failed to upscale %s: %v\n", file.Name, err)
 			os.Exit(1)
 		}
+
+		// Check if output file was created
+		if _, err := os.Stat(outputPath); os.IsNotExist(err) {
+			fmt.Printf("Upscale failed for %s: output not created\n", file.Name)
+			os.Exit(1)
+		}
 	}
 
 	// Print upscale summary
@@ -140,6 +170,21 @@ func main() {
 		outputFile = filepath.Join(filepath.Dir(inputFile), name)
 	} else {
 		outputFile = outputFlag
+	}
+
+	// Check if output file already exists
+	if _, err := os.Stat(outputFile); err == nil {
+		fmt.Println("Output file exists, remove it first")
+		os.Exit(1)
+	}
+
+	// Check if parent directory exists, create if not
+	outputDir := filepath.Dir(outputFile)
+	if _, err := os.Stat(outputDir); os.IsNotExist(err) {
+		if err := os.MkdirAll(outputDir, 0755); err != nil {
+			fmt.Printf("Failed to create output directory %s: %v\n", outputDir, err)
+			os.Exit(1)
+		}
 	}
 
 	// Create output ZIP
