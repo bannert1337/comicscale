@@ -90,6 +90,25 @@ func main() {
 		}
 	}
 
+	// Dynamically adjust threads for multi-GPU
+	if threads == "1:2:2" { // Only adjust if using default threads
+		// Count GPUs by splitting gpuId
+		gpuIds := strings.Split(gpuId, ",")
+		numGpus := len(gpuIds)
+		if numGpus > 1 {
+			procParts := make([]string, numGpus)
+			saveParts := make([]string, numGpus)
+			for i := 0; i < numGpus; i++ {
+				procParts[i] = "2"
+				saveParts[i] = "2"
+			}
+			threads = "1:" + strings.Join(procParts, ",") + ":" + strings.Join(saveParts, ",")
+		} else {
+			threads = "1:2:2"
+		}
+		fmt.Printf("Adjusted threads for %d GPUs: %s\n", numGpus, threads)
+	}
+
 	// Check if input file exists
 	if _, err := os.Stat(inputFile); os.IsNotExist(err) {
 		fmt.Printf("Error: input file %s does not exist\n", inputFile)
