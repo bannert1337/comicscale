@@ -1,3 +1,11 @@
+# File created using '.gitignore Generator' for Visual Studio Code: https://bit.ly/vscode-gig
+# Created by https://www.toptal.com/developers/gitignore/api/go
+# Edit at https://www.toptal.com/developers/gitignore?templates=go
+
+### Go ###
+# If you prefer the allow list template instead of the deny list, see community template:
+# https://github.com/github/gitignore/blob/main/community/Golang/Go.AllowList.gitignore
+#
 # Binaries for programs and plugins
 *.exe
 *.exe~
@@ -9,18 +17,15 @@
 *.test
 
 # Output of the go coverage tool, specifically when used with LiteIDE
-coverage.html
+*.out
+
+# Dependency directories (remove the comment below to include it)
+# vendor/
 
 # Go workspace file
 go.work
-go.work.sum
 
-# Temporary directory for Go plugins
-/tmp/
+# End of https://www.toptal.com/developers/gitignore/api/go
 
-# Dependency directories
-vendor/
+# Custom rules (everything added below won't be overriden by 'Generate .gitignore File' if you use 'Update' option)
 
-# Bin directory
-/bin/
-/pkg/
