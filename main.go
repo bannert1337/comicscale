@@ -25,6 +25,10 @@ func main() {
 	flag.StringVar(&outputFlag, "output", "", "Output CBZ file (default: {input}_upscaled.cbz)")
 	flag.IntVar(&scale, "scale", 2, "Scale factor (default: 2)")
 	flag.IntVar(&noise, "noise", 2, "Noise reduction level (default: 2)")
+	var gpuId string
+	flag.StringVar(&gpuId, "gpu-id", "auto", "GPU ID (-1=cpu, 0,1,... or comma-separated for multi-GPU; default auto-detect)")
+	var threads string
+	flag.StringVar(&threads, "threads", "1:2:2", "Threads for load:proc:save (default 1:2:2)")
 
 	flag.Parse()
 
@@ -52,6 +56,10 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
+
+	// Temporary print for verification
+	fmt.Printf("GPU ID: %s, Threads: %s\n", gpuId, threads)
+	// os.Exit(0) // Uncomment this line for testing purposes only
 
 	// Check if input file exists
 	if _, err := os.Stat(inputFile); os.IsNotExist(err) {
