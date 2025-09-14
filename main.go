@@ -182,8 +182,10 @@ func main() {
 	for _, file := range imageFiles {
 		inputPath := filepath.Join(tempDir, file.Name)
 		outputPath := filepath.Join(upscaleDir, file.Name)
-		args := []string{"-i", inputPath, "-o", outputPath, "-s", strconv.Itoa(scale), "-n", strconv.Itoa(noise), "-x", "-g", gpuId, "-j", threads}
+		args := []string{"-i", inputPath, "-o", outputPath, "-s", strconv.Itoa(scale), "-n", strconv.Itoa(noise), "-x", "-g", gpuId, "-j", threads, "-v"}
 		cmd := exec.Command("waifu2x-ncnn-vulkan", args...)
+		cmd.Stdout = os.Stdout
+		cmd.Stderr = os.Stderr
 		if err := cmd.Run(); err != nil {
 			fmt.Printf("Failed to upscale %s: %v\n", file.Name, err)
 			os.Exit(1)
