@@ -58,8 +58,44 @@ func main() {
 	}
 
 	// Temporary print for verification
-	fmt.Printf("GPU ID: %s, Threads: %s\n", gpuId, threads)
+	// fmt.Printf("GPU ID: %s, Threads: %s\n", gpuId, threads)
 	// os.Exit(0) // Uncomment this line for testing purposes only
+
+	// Auto-detect GPUs if gpuId is set to "auto"
+	if gpuId == "auto" {
+		cmd := exec.Command("nvidia-smi", "-L")
+		outputBytes, err := cmd.Output()
+		if err != nil {
+			fmt.Printf("nvidia-smi not found or failed: %v; assuming 1 GPU\n", err)
+			gpuId = "0"
+			fmt.Printf("Detected %d GPUs, using IDs: %s\n", 1, gpuId)
+		} else {
+			output := string(outputBytes)
+			lines := strings.Split(output, "\n")
+			numGpus := 0
+			for _, line := range lines {
+				if strings.HasPrefix(strings.TrimSpace(line), "GPU ") {
+					numGpus++
+				}
+			}
+			if numGpus == 0 {
+				gpuId = "-1"
+				fmt.Println("No GPUs detected, using CPU")
+			} else if numGpus == 1 {
+				gpuId = "0"
+			} else {
+				gpuIds := make([]string, numGpus)
+				for i := 0; i < numGpus; i++ {
+					gpuIds[i] = strconv.Itoa(i)
+				}
+				gpuId = strings.Join(gpuIds, ",")
+			}
+			fmt.Printf("Detected %d GPUs, using IDs: %s\n", numGpus, gpuId)
+		}
+	}
+
+	// Temporary exit for testing GPU detection
+	os.Exit(0)
 
 	// Check if input file exists
 	if _, err := os.Stat(inputFile); os.IsNotExist(err) {
