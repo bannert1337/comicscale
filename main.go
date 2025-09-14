@@ -6,8 +6,10 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 )
 
@@ -101,7 +103,35 @@ func main() {
 		}
 	}
 
-	// Print summary and exit as placeholder
+	// Print summary
 	fmt.Printf("Extracted %d images to temp directory: %s\n", len(imageFiles), tempDir)
+
+	// Create upscaled directory
+	upscaleDir := filepath.Join(tempDir, "upscaled")
+	if err := os.Mkdir(upscaleDir, 0755); err != nil {
+		fmt.Printf("Error: failed to create upscaled directory: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Convert imageFiles to a slice of strings for processing
+	var imageFileNames []string
+	for _, file := range imageFiles {
+		imageFileNames = append(imageFileNames, file.Name)
+	}
+
+	// Upscale each image
+	for _, filename := range imageFileNames {
+		inputPath := filepath.Join(tempDir, filename)
+		outputPath := filepath.Join(upscaleDir, filename)
+		cmd := exec.Command("waifu2x-ncnn-vulkan", "-i", inputPath, "-o", outputPath, "-s", strconv.Itoa(scale), "-n", strconv.Itoa(noise), "-x")
+		err := cmd.Run()
+		if err != nil {
+			fmt.Printf("Failed to upscale %s: %v\n", filename, err)
+			os.Exit(1)
+		}
+	}
+
+	// Print success message and exit
+	fmt.Printf("Upscaled %d images to %s\n", len(imageFileNames), upscaleDir)
 	os.Exit(0)
 }
