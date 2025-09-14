@@ -15,18 +15,26 @@ import (
 
 func main() {
 	var (
-		inputFile string
-		outputFile string
-		scale     int
-		noise     int
+		inputFile  string
+		outputFlag string
+		scale      int
+		noise      int
 	)
 
 	flag.StringVar(&inputFile, "input", "", "Input CBZ file (required)")
-	flag.StringVar(&outputFile, "output", "", "Output CBZ file (default: {input}_upscaled.cbz)")
+	flag.StringVar(&outputFlag, "output", "", "Output CBZ file (default: {input}_upscaled.cbz)")
 	flag.IntVar(&scale, "scale", 2, "Scale factor (default: 2)")
 	flag.IntVar(&noise, "noise", 2, "Noise reduction level (default: 2)")
 
 	flag.Parse()
+
+	// Defer cleanup of temp directory
+	var extractDir string
+	defer func() {
+		if extractDir != "" {
+			os.RemoveAll(extractDir)
+		}
+	}()
 
 	// Check if input file is provided
 	if inputFile == "" {
@@ -39,11 +47,6 @@ func main() {
 	if _, err := os.Stat(inputFile); os.IsNotExist(err) {
 		fmt.Printf("Error: input file %s does not exist\n", inputFile)
 		os.Exit(1)
-	}
-
-	// Set default output file if not provided
-	if outputFile == "" {
-		outputFile = fmt.Sprintf("%s_upscaled.cbz", inputFile)
 	}
 
 	// Open the CBZ file as a zip archive
@@ -75,6 +78,7 @@ func main() {
 		fmt.Printf("Error: failed to create temporary directory: %v\n", err)
 		os.Exit(1)
 	}
+	extractDir = tempDir // For defer cleanup
 
 	// Extract image files to temporary directory
 	for _, file := range imageFiles {
@@ -126,5 +130,56 @@ func main() {
 
 	// Print upscale summary
 	fmt.Printf("Upscaled %d images to %s\n", len(imageFiles), upscaleDir)
-	os.Exit(0)
+
+	// Determine output filename
+	var outputFile string
+	if outputFlag == "" {
+		base := filepath.Base(inputFile)
+		ext := filepath.Ext(base)
+		name := strings.TrimSuffix(base, ext) + "_upscaled.cbz"
+		outputFile = filepath.Join(filepath.Dir(inputFile), name)
+	} else {
+		outputFile = outputFlag
+	}
+
+	// Create output ZIP
+	outFile, err := os.Create(outputFile)
+	if err != nil {
+		fmt.Printf("Failed to create output file %s: %v\n", outputFile, err)
+		os.Exit(1)
+	}
+	defer outFile.Close()
+
+	writer := zip.NewWriter(outFile)
+	defer writer.Close()
+
+	// Convert zip.File slice to string slice for consistent processing
+	var imageNames []string
+	for _, file := range imageFiles {
+		imageNames = append(imageNames, file.Name)
+	}
+
+	for _, filename := range imageNames {
+		filePath := filepath.Join(upscaleDir, filename)
+		f, err := os.Open(filePath)
+		if err != nil {
+			fmt.Printf("Failed to open upscaled %s: %v\n", filename, err)
+			os.Exit(1)
+		}
+		defer f.Close()
+
+		w, err := writer.Create(filename)
+		if err != nil {
+			fmt.Printf("Failed to create zip entry for %s: %v\n", filename, err)
+			os.Exit(1)
+		}
+
+		if _, err := io.Copy(w, f); err != nil {
+			fmt.Printf("Failed to copy %s to zip: %v\n", filename, err)
+			os.Exit(1)
+		}
+	}
+
+	// Print success message
+	fmt.Printf("Created upscaled CBZ: %s\n", outputFile)
 }
