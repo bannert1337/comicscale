@@ -18,13 +18,11 @@ func main() {
 		inputFile  string
 		outputFlag string
 		scale      int
-		noise      int
 	)
 
 	flag.StringVar(&inputFile, "input", "", "Input CBZ file (required)")
 	flag.StringVar(&outputFlag, "output", "", "Output CBZ file (default: {input}_upscaled.cbz)")
-	flag.IntVar(&scale, "scale", 2, "Scale factor (default: 2)")
-	flag.IntVar(&noise, "noise", 2, "Noise reduction level (default: 2)")
+	flag.IntVar(&scale, "scale", 4, "Scale factor (default: 4)")
 	var gpuId string
 	flag.StringVar(&gpuId, "gpu-id", "auto", "GPU ID (-1=cpu, 0,1,... or comma-separated for multi-GPU; default auto-detect)")
 	var threads string
@@ -32,13 +30,9 @@ func main() {
 
 	flag.Parse()
 
-	// Validate scale and noise parameters
+	// Validate scale parameters
 	if scale <= 0 {
 		fmt.Println("Scale must be >0")
-		os.Exit(1)
-	}
-	if noise < 0 {
-		fmt.Println("Noise must be >=0")
 		os.Exit(1)
 	}
 
@@ -74,12 +68,13 @@ func main() {
 					numGpus++
 				}
 			}
-			if numGpus == 0 {
+			switch numGpus {
+			case 0:
 				gpuId = "-1"
 				fmt.Println("No GPUs detected, using CPU")
-			} else if numGpus == 1 {
+			case 1:
 				gpuId = "0"
-			} else {
+			default:
 				gpuIds := make([]string, numGpus)
 				for i := 0; i < numGpus; i++ {
 					gpuIds[i] = strconv.Itoa(i)
@@ -98,11 +93,11 @@ func main() {
 		if numGpus > 1 {
 			procParts := make([]string, numGpus)
 			saveParts := make([]string, numGpus)
-			for i := 0; i < numGpus; i++ {
-				procParts[i] = "2"
-				saveParts[i] = "2"
+			for i := range numGpus {
+				procParts[i] = "4"
+				saveParts[i] = "4"
 			}
-			threads = "1:" + strings.Join(procParts, ",") + ":" + strings.Join(saveParts, ",")
+			threads = "4:" + strings.Join(procParts, ",") + ":" + "4"
 		} else {
 			threads = "1:2:2"
 		}
@@ -144,6 +139,7 @@ func main() {
 		fmt.Printf("Error: failed to create temporary directory: %v\n", err)
 		os.Exit(1)
 	}
+
 	extractDir = tempDir // For defer cleanup
 
 	// Extract image files to temporary directory
@@ -182,11 +178,11 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Check if waifu2x binary exists
-	_, err = exec.LookPath("waifu2x-ncnn-vulkan")
+	// Check if upscayl binary exists
+	_, err = exec.LookPath("upscayl")
 	if err != nil {
-		fmt.Printf("waifu2x-ncnn-vulkan not found in PATH: %v\n", err)
-		fmt.Println("Install from https://github.com/nihui/waifu2x-ncnn-vulkan")
+		fmt.Printf("upscayl not found in PATH: %v\n", err)
+		fmt.Println("Install from https://github.com/upscayl/upscayl")
 		os.Exit(1)
 	}
 
@@ -197,24 +193,37 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Upscale each image file
-	for _, file := range imageFiles {
-		inputPath := filepath.Join(tempDir, file.Name)
-		outputPath := filepath.Join(upscaleDir, file.Name)
-		args := []string{"-i", inputPath, "-o", outputPath, "-s", strconv.Itoa(scale), "-n", strconv.Itoa(noise), "-x", "-g", gpuId, "-j", threads, "-v"}
-		cmd := exec.Command("waifu2x-ncnn-vulkan", args...)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			fmt.Printf("Failed to upscale %s: %v\n", file.Name, err)
-			os.Exit(1)
-		}
+	// Prepare arguments for upscayl
+	args := []string{"-i", tempDir, "-o", upscaleDir, "-s", strconv.Itoa(scale), "-x", "-g", gpuId, "-j", threads}
+	cmd := exec.Command("upscayl", args...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
 
-		// Check if output file was created
-		if _, err := os.Stat(outputPath); os.IsNotExist(err) {
-			fmt.Printf("Upscale failed for %s: output not created\n", file.Name)
+	// Run with multi-GPU, fallback to single GPU if needed
+	err = cmd.Run()
+	if err != nil {
+		if strings.Contains(gpuId, ",") {
+			fmt.Printf("Multi-GPU failed, falling back to single GPU\n")
+			gpuIdFallback := "0"
+			argsFallback := []string{"-i", tempDir, "-o", upscaleDir, "-s", strconv.Itoa(scale), "-x", "-g", gpuIdFallback}
+			cmdFallback := exec.Command("upscayl", argsFallback...)
+			cmdFallback.Stdout = os.Stdout
+			cmdFallback.Stderr = os.Stderr
+			err = cmdFallback.Run()
+			if err != nil {
+				fmt.Printf("Fallback also failed for %s: %v\n", inputFile, err)
+				os.Exit(1)
+			}
+		} else {
+			fmt.Printf("Failed to upscale %s: %v\n", inputFile, err)
 			os.Exit(1)
 		}
+	}
+
+	// Check if output file was created
+	if _, err := os.Stat(upscaleDir); os.IsNotExist(err) {
+		fmt.Printf("Upscale failed for %s: output not created\n", inputFile)
+		os.Exit(1)
 	}
 
 	// Print upscale summary
