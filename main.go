@@ -57,10 +57,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Temporary print for verification
-	// fmt.Printf("GPU ID: %s, Threads: %s\n", gpuId, threads)
-	// os.Exit(0) // Uncomment this line for testing purposes only
-
 	// Auto-detect GPUs if gpuId is set to "auto"
 	if gpuId == "auto" {
 		cmd := exec.Command("nvidia-smi", "-L")
@@ -93,9 +89,6 @@ func main() {
 			fmt.Printf("Detected %d GPUs, using IDs: %s\n", numGpus, gpuId)
 		}
 	}
-
-	// Temporary exit for testing GPU detection
-	os.Exit(0)
 
 	// Check if input file exists
 	if _, err := os.Stat(inputFile); os.IsNotExist(err) {
@@ -189,7 +182,8 @@ func main() {
 	for _, file := range imageFiles {
 		inputPath := filepath.Join(tempDir, file.Name)
 		outputPath := filepath.Join(upscaleDir, file.Name)
-		cmd := exec.Command("waifu2x-ncnn-vulkan", "-i", inputPath, "-o", outputPath, "-s", strconv.Itoa(scale), "-n", strconv.Itoa(noise), "-x")
+		args := []string{"-i", inputPath, "-o", outputPath, "-s", strconv.Itoa(scale), "-n", strconv.Itoa(noise), "-x", "-g", gpuId, "-j", threads}
+		cmd := exec.Command("waifu2x-ncnn-vulkan", args...)
 		if err := cmd.Run(); err != nil {
 			fmt.Printf("Failed to upscale %s: %v\n", file.Name, err)
 			os.Exit(1)
