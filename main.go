@@ -15,14 +15,16 @@ import (
 
 func main() {
 	var (
-		inputFile  string
-		outputFlag string
-		scale      int
+		inputFile        string
+		outputFlag       string
+		scale            int
+		compressionRatio int
 	)
 
 	flag.StringVar(&inputFile, "input", "", "Input CBZ file (required)")
 	flag.StringVar(&outputFlag, "output", "", "Output CBZ file (default: {input}_upscaled.cbz)")
 	flag.IntVar(&scale, "scale", 4, "Scale factor (default: 4)")
+	flag.IntVar(&compressionRatio, "compress ratio", 100, "Compression Ratio (default: 100)")
 	var gpuId string
 	flag.StringVar(&gpuId, "gpu-id", "auto", "GPU ID (-1=cpu, 0,1,... or comma-separated for multi-GPU; default auto-detect)")
 	var threads string
@@ -90,14 +92,12 @@ func main() {
 		// Count GPUs by splitting gpuId
 		gpuIds := strings.Split(gpuId, ",")
 		numGpus := len(gpuIds)
-		if numGpus > 1 {
+		if numGpus >= 1 {
 			procParts := make([]string, numGpus)
-			saveParts := make([]string, numGpus)
 			for i := range numGpus {
-				procParts[i] = "4"
-				saveParts[i] = "4"
+				procParts[i] = "2"
 			}
-			threads = "4:" + strings.Join(procParts, ",") + ":" + "4"
+			threads = "2:" + strings.Join(procParts, ",") + ":" + "4"
 		} else {
 			threads = "1:2:2"
 		}
@@ -194,10 +194,10 @@ func main() {
 	}
 
 	// Prepare arguments for upscayl
-	args := []string{"-i", tempDir, "-o", upscaleDir, "-s", strconv.Itoa(scale), "-x", "-g", gpuId, "-j", threads}
+	args := []string{"-i", tempDir, "-o", upscaleDir, "-s", strconv.Itoa(scale), "-g", gpuId, "-j", threads, "-c", strconv.Itoa(compressionRatio), "-f", "jpg"}
 	cmd := exec.Command("upscayl", args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
+	//cmd.Stdout = os.Stdout
+	//cmd.Stderr = os.Stderr
 
 	// Run with multi-GPU, fallback to single GPU if needed
 	err = cmd.Run()
@@ -205,7 +205,7 @@ func main() {
 		if strings.Contains(gpuId, ",") {
 			fmt.Printf("Multi-GPU failed, falling back to single GPU\n")
 			gpuIdFallback := "0"
-			argsFallback := []string{"-i", tempDir, "-o", upscaleDir, "-s", strconv.Itoa(scale), "-x", "-g", gpuIdFallback}
+			argsFallback := []string{"-i", tempDir, "-o", upscaleDir, "-s", strconv.Itoa(scale), "-g", gpuIdFallback, "-c", strconv.Itoa(compressionRatio)}
 			cmdFallback := exec.Command("upscayl", argsFallback...)
 			cmdFallback.Stdout = os.Stdout
 			cmdFallback.Stderr = os.Stderr
