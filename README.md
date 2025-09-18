@@ -1,17 +1,16 @@
 # Comic Upscaler
 
-A Go CLI tool to upscale images in CBZ (comic/manga archive) files using waifu2x-ncnn-vulkan for AI-based upscaling.
+A Go CLI tool to upscale images in CBZ (comic/manga archive) files using upscayl for AI-based upscaling.
 
 ## Features
 
-- Extracts images from CBZ, upscales with waifu2x (Vulkan accelerated), repackages into new CBZ.
+- Extracts images from CBZ, upscales with upscayl (Vulkan accelerated), repackages into new CBZ.
 - Supports PNG/JPG/GIF/BMP images.
 - Defaults: scale=2, noise=2.
 
 ## Prerequisites
 
-- Go 1.16+ installed.
-- waifu2x-ncnn-vulkan binary in PATH (download from https://github.com/nihui/waifu2x-ncnn-vulkan).
+- upscayl binary in PATH (download from https://github.com/upscayl/upscayl).
 
 ## Installation
 
@@ -38,13 +37,9 @@ Examples:
 
 ## Notes
 
-- Assumes waifu2x installed; tool checks and errors if missing.
+- Assumes upscayl installed; tool checks and errors if missing.
 - Temp files auto-cleaned.
 - Vulkan enabled for GPU if available.
-- GPU auto-detection requires nvidia-smi (part of NVIDIA drivers); falls back to single GPU if unavailable, CPU if none. For AMD/Intel GPUs, set --gpu-id manually (tool uses Vulkan, supports multiple backends via waifu2x).
+- GPU auto-detection requires nvidia-smi (part of NVIDIA drivers); falls back to single GPU if unavailable, CPU if none. For AMD/Intel GPUs, set --gpu-id manually (tool uses Vulkan, supports multiple backends via upscayl).
 - For multi-GPU, default threads are auto-adjusted to match GPU count (e.g., proc/save parts per GPU); custom --threads overrides this.
 - License: MIT (or add basic MIT license text if desired).
-
-## Development
-
-Contributed by Oak AI.
