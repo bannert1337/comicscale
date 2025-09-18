@@ -42,4 +42,3 @@ Examples:
 - Vulkan enabled for GPU if available.
 - GPU auto-detection requires nvidia-smi (part of NVIDIA drivers); falls back to single GPU if unavailable, CPU if none. For AMD/Intel GPUs, set --gpu-id manually (tool uses Vulkan, supports multiple backends via upscayl).
 - For multi-GPU, default threads are auto-adjusted to match GPU count (e.g., proc/save parts per GPU); custom --threads overrides this.
-- License: MIT (or add basic MIT license text if desired).
