@@ -23,7 +23,7 @@ func main() {
 
 	flag.StringVar(&inputFile, "input", "", "Input CBZ file (required)")
 	flag.StringVar(&outputFlag, "output", "", "Output CBZ file (default: {input}_upscaled.cbz)")
-	flag.IntVar(&scale, "scale", 4, "Scale factor (default: 4)")
+	flag.IntVar(&scale, "scale", 2, "Scale factor (default: 2)")
 	flag.IntVar(&compressionRatio, "compress ratio", 100, "Compression Ratio (default: 100)")
 	var gpuId string
 	flag.StringVar(&gpuId, "gpu-id", "auto", "GPU ID (-1=cpu, 0,1,... or comma-separated for multi-GPU; default auto-detect)")
